@@ -1,10 +1,11 @@
 # Simple Rasterizer
+<p align="center"><img src="demo_rasterizer.png" width="400" height="400"></p>
 
 A simple rasterizer in C, using only the Win32 API. Implements the pseudo-rasterizer as illustrated in the second chapter of [Computer Graphics from Scratch](https://www.gabrielgambetta.com/computer-graphics-from-scratch/).
 
 ## Functionality
 - [X] - **Lines** - Implementing line rasterizing & core engine code
-- [ ] - **Filled Triangles** - Implementing rasterization of triangles
+- [X] - **Filled Triangles** - Implementing rasterization of triangles
 - [ ] - **Shaded Triangles** - Implements rasterization of triangles filled with color gradient
 - [ ] - **Perspective Projection** - Implements rasterization of 3D objects
 - [ ] - **Describing and Rendering a Scene** - Implements representation of arbitrary types of objects in a scene

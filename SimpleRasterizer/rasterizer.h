@@ -11,3 +11,7 @@
 void StartRasterizer(HWND hwnd, int nWidth, int nHeight);
 
 void RasterizeLine(Point a, Point b, COLORREF clr);
+
+void RasterizeWireframeTriangle(Point a, Point b, Point c, COLORREF clr);
+
+void RasterizeFilledTriangle(Point a, Point b, Point c, COLORREF clr);

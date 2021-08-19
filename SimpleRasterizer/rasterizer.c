@@ -89,7 +89,7 @@ float* Interpolate(float i0, float d0, float i1, float d1) {
 		return res;
 	}
 
-	float* res = (float*)malloc(sizeof(float) * (i1 - i0));
+	float* res = (float*)malloc(sizeof(float) * (i1 - i0 + 1));
 
 	float coeff = (d1 - d0) / (i1 - i0);
 	float incY = d0;
@@ -102,7 +102,7 @@ float* Interpolate(float i0, float d0, float i1, float d1) {
 	return res;
 }
 
-// Rasterizes a line defined by two points and a color the screen.
+// Rasterizes a line defined by two points and a color to the screen.
 
 void RasterizeLine(Point a, Point b, COLORREF clr) {
 	float dx = b.x - a.x;
@@ -111,9 +111,7 @@ void RasterizeLine(Point a, Point b, COLORREF clr) {
 	if (fabs(dx) > fabs(dy)) {
 		// line is more parallel to the horizontal
 		if (a.x > b.x) {
-			Point temp = a;
-			a = b;
-			b = temp;
+			Swap(&a, &b);
 		}
 
 		float* ys = Interpolate(a.x, a.y, b.x, b.y);
@@ -125,9 +123,7 @@ void RasterizeLine(Point a, Point b, COLORREF clr) {
 	else {
 		// line is more parallel to the vertical
 		if (a.y > b.y) {
-			Point temp = a;
-			a = b;
-			b = temp;
+			Swap(&a, &b);
 		}
 
 		float* xs = Interpolate(a.y, a.x, b.y, b.x);
@@ -136,5 +132,52 @@ void RasterizeLine(Point a, Point b, COLORREF clr) {
 			PutPixel(xs[(int)(p - a.y)], p, clr);
 		}
 	}
+}
 
+// Rasterizes the outline (wireframe) of a triangle, defined by three points and a color.
+
+void RasterizeWireframeTriangle(Point a, Point b, Point c, COLORREF clr) {
+	RasterizeLine(a, b, clr);
+	RasterizeLine(b, c, clr);
+	RasterizeLine(c, a, clr);
+}
+
+
+void RasterizeFilledTriangle(Point a, Point b, Point c, COLORREF clr) {
+	float* xL = NULL;
+	float* xR = NULL;
+
+	if (b.y < a.y) {
+		Swap(&b, &a);
+	}
+
+	if (c.y < a.y) {
+		Swap(&c, &a);
+	}
+
+	if (c.y < b.y) {
+		Swap(&c, &b);
+	}
+
+	float* xAB = Interpolate(a.y, a.x, b.y, b.x); 
+	float* xBC = Interpolate(b.y, b.x, c.y, c.x);
+	float* xAC = Interpolate(a.y, a.x, c.y, c.x);
+
+	float* xABC = ArrayConcat(xAB, b.y - a.y, xBC, c.y - b.y + 1);   // ignoring the last value of B in xAB
+
+	int m = floor((c.y - a.y + 1) / 2);
+	if (xAC[m] < xABC[m]) {
+		xL = xAC;
+		xR = xABC;
+	}
+	else {
+		xL = xABC;
+		xR = xAC;
+	}
+
+	for (float y = a.y; y <= c.y; y++) {
+		for (float x = xL[(int)(y - a.y)]; x <= xR[(int)(y - a.y)]; x++) {
+			PutPixel(x, y, clr);
+		}
+	}
 }

@@ -18,14 +18,22 @@ int isMinimized = 0;
 // Custom configuration of the scene to render. Called by the rasterizer.
 
 void Draw() {
-	Point a1 = { -200, -100 };
-	Point a2 = { 240, 120 };
+	Point a = { -200, -250 };
+	Point b = { 200, 50 };
+	Point c = { 20, 250 };
 
-	Point b1 = { -50, -200 };
-	Point b2 = { 60, 240 };
+	//RasterizeWireframeTriangle(a, b, c, RT_RGB(0, 0, 0));
+	RasterizeFilledTriangle(a, b, c, RT_RGB(0, 255, 0));
 
-	RasterizeLine(a1, a2, RT_RGB(0, 0, 0));
-	RasterizeLine(b1, b2, RT_RGB(0, 0, 0));
+	Point d = { 191, -215 };
+	Point e = { 3, -202 };
+	Point f = { 181, -75 };
+	RasterizeFilledTriangle(d, e, f, RT_RGB(255, 0, 0));
+
+	Point g = { -220, 242 };
+	Point h = { -227, 74 };
+	Point i = { -25, 270 };
+	RasterizeFilledTriangle(g, h, i, RT_RGB(0, 0, 255));
 }
 
 LRESULT CALLBACK WinProc(HWND hwnd, UINT wm, WPARAM wp, LPARAM lp);

@@ -141,6 +141,7 @@
   <ItemGroup>
     <ClCompile Include="main.c" />
     <ClCompile Include="rasterizer.c" />
+    <ClCompile Include="rasterizer_math.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="main.h" />

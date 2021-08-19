@@ -21,6 +21,9 @@
     <ClCompile Include="rasterizer.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="rasterizer_math.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="rasterizer.h">
