@@ -83,6 +83,10 @@ void Update(HWND wndHandle) {
 // Performs linear interpolation between two points (i/d0 and i/d1), assumes i1 > i0 . Returns array of the interpolated values.
 
 float* Interpolate(float i0, float d0, float i1, float d1) {
+	// round off float values
+	i0 = ceil(i0);
+	i1 = ceil(i1);
+	
 	if (i0 == i1) {
 		float* res = (float*)malloc(sizeof(float));
 		*res = d0;
@@ -142,6 +146,7 @@ void RasterizeWireframeTriangle(Point a, Point b, Point c, COLORREF clr) {
 	RasterizeLine(c, a, clr);
 }
 
+// Rasterizes a filled triangle with a solid color, defined by three points and a color.
 
 void RasterizeFilledTriangle(Point a, Point b, Point c, COLORREF clr) {
 	float* xL = NULL;
@@ -178,6 +183,70 @@ void RasterizeFilledTriangle(Point a, Point b, Point c, COLORREF clr) {
 	for (float y = a.y; y <= c.y; y++) {
 		for (float x = xL[(int)(y - a.y)]; x <= xR[(int)(y - a.y)]; x++) {
 			PutPixel(x, y, clr);
+		}
+	}
+}
+
+// Rasterizes a filled triangle with a gradient color, defined by three points, color, and gradient factor [0-1] of each point.
+
+void RasterizeShadedTriangle(Point a, Point b, Point c, COLORREF clr, float aH, float bH, float cH) {
+	float* xL = NULL;
+	float* hL = NULL;
+	float* xR = NULL;
+	float* hR = NULL;
+
+	if (b.y < a.y) {
+		Swap(&b, &a);
+	}
+
+	if (c.y < a.y) {
+		Swap(&c, &a);
+	}
+
+	if (c.y < b.y) {
+		Swap(&c, &b);
+	}
+
+	float* xAB = Interpolate(a.y, a.x, b.y, b.x);
+	float* hAB = Interpolate(a.y, aH, b.y, bH);
+
+	float* xBC = Interpolate(b.y, b.x, c.y, c.x);
+	float* hBC = Interpolate(b.y, bH, c.y, cH);
+
+	float* xAC = Interpolate(a.y, a.x, c.y, c.x);
+	float* hAC = Interpolate(a.y, aH, c.y, cH);
+
+	float* xABC = ArrayConcat(xAB, b.y - a.y, xBC, c.y - b.y + 1);   // ignoring the last value of B in xAB
+	float* hABC = ArrayConcat(hAB, b.y - a.y, hBC, c.y - b.y + 1);   // same but in hAB
+
+	int m = floor((c.y - a.y + 1) / 2);
+	if (xAC[m] < xABC[m]) {
+		xL = xAC;
+		hL = hAC;
+
+		xR = xABC;
+		hR = hABC;
+	}
+	else {
+		xL = xABC;
+		hL = hABC;
+
+		xR = xAC;
+		hR = hAC;
+	}
+
+	for (int y = a.y; y <= c.y; y++) {
+		float currXL = xL[(int)(y - a.y)];
+		float currXR = xR[(int)(y - a.y)];
+
+		float* h_segms = Interpolate(currXL, hL[(int)(y - a.y)], currXR, hR[(int)(y - a.y)]);
+
+		for (int x = currXL; x <= currXR; x++) {
+			float shR = RT_GetRValue(clr) * h_segms[(int)(x - currXL)];
+			float shG = RT_GetGValue(clr) * h_segms[(int)(x - currXL)];
+			float shB = RT_GetBValue(clr) * h_segms[(int)(x - currXL)];
+
+			PutPixel(x, y, RT_RGB(shR, shG, shB));
 		}
 	}
 }

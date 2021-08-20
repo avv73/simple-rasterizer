@@ -15,3 +15,5 @@ void RasterizeLine(Point a, Point b, COLORREF clr);
 void RasterizeWireframeTriangle(Point a, Point b, Point c, COLORREF clr);
 
 void RasterizeFilledTriangle(Point a, Point b, Point c, COLORREF clr);
+
+void RasterizeShadedTriangle(Point a, Point b, Point c, COLORREF clr, float aH, float bH, float cH);

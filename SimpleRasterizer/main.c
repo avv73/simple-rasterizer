@@ -23,7 +23,7 @@ void Draw() {
 	Point c = { 20, 250 };
 
 	//RasterizeWireframeTriangle(a, b, c, RT_RGB(0, 0, 0));
-	RasterizeFilledTriangle(a, b, c, RT_RGB(0, 255, 0));
+	RasterizeShadedTriangle(a, b, c, RT_RGB(0, 255, 0), 0.3, 0.1, 1);
 
 	Point d = { 191, -215 };
 	Point e = { 3, -202 };
