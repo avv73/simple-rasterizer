@@ -12,7 +12,7 @@ A simple rasterizer in C, using only the Win32 API. Implements the pseudo-raster
 - [ ] - **Clipping** - The techniques needed to identify objects behind the camera
 - [ ] - **Hidden Surface Removal** - Removing surfaces that are not visible from the camera
 - [ ] - **Shading** - Implementing lights into the scene
-- [ ] - **Textures** - Addind visual detail to the surfaces of objects
+- [ ] - **Textures** - Adding visual detail to the surfaces of objects
 - [ ] - **Extending the Rasterizer** - Normal mapping, shadows etc.
 
 
