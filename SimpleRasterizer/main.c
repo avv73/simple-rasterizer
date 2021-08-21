@@ -14,26 +14,47 @@ const int WINDOW_WIDTH = 600;
 
 int isMinimized = 0;
 
+// Called by the rasterizer, configures the scene to use
 
-// Custom configuration of the scene to render. Called by the rasterizer.
+void ConfigureScene() {
+	mainScn.cmrPos.x = 0;
+	mainScn.cmrPos.y = 0;
+	mainScn.cmrPos.z = 0;
+
+	mainScn.prjPlaneZ = 1;
+	mainScn.vwpSize = 1;
+}
+
+// Called by the rasterizer, describes the scene to render
 
 void Draw() {
-	Point a = { -200, -250 };
-	Point b = { 200, 50 };
-	Point c = { 20, 250 };
+	Vector3 vAf = { -2, -0.5, 5 };
+	Vector3 vBf = { -2, 0.5, 5 };
+	Vector3 vCf = { -1, 0.5, 5 };
+	Vector3 vDf = { -1, -0.5, 5 };
 
-	//RasterizeWireframeTriangle(a, b, c, RT_RGB(0, 0, 0));
-	RasterizeShadedTriangle(a, b, c, RT_RGB(0, 255, 0), 0.3, 0.1, 1);
+	Vector3 vAb = { -2, -0.5, 6 };
+	Vector3 vBb = { -2, 0.5, 6 };
+	Vector3 vCb = { -1, 0.5, 6 };
+	Vector3 vDb = { -1, -0.5, 6 };
 
-	Point d = { 191, -215 };
-	Point e = { 3, -202 };
-	Point f = { 181, -75 };
-	RasterizeFilledTriangle(d, e, f, RT_RGB(255, 0, 0));
+	// The front face
+	RasterizeLine(ProjectVertex(vAf), ProjectVertex(vBf), RT_RGB(0, 0, 255));
+	RasterizeLine(ProjectVertex(vBf), ProjectVertex(vCf), RT_RGB(0, 0, 255));
+	RasterizeLine(ProjectVertex(vCf), ProjectVertex(vDf), RT_RGB(0, 0, 255));
+	RasterizeLine(ProjectVertex(vDf), ProjectVertex(vAf), RT_RGB(0, 0, 255));
 
-	Point g = { -220, 242 };
-	Point h = { -227, 74 };
-	Point i = { -25, 270 };
-	RasterizeFilledTriangle(g, h, i, RT_RGB(0, 0, 255));
+	// The back face
+	RasterizeLine(ProjectVertex(vAb), ProjectVertex(vBb), RT_RGB(255, 0, 0));
+	RasterizeLine(ProjectVertex(vBb), ProjectVertex(vCb), RT_RGB(255, 0, 0));
+	RasterizeLine(ProjectVertex(vCb), ProjectVertex(vDb), RT_RGB(255, 0, 0));
+	RasterizeLine(ProjectVertex(vDb), ProjectVertex(vAb), RT_RGB(255, 0, 0));
+
+	// The front-to-back edges
+	RasterizeLine(ProjectVertex(vAf), ProjectVertex(vAb), RT_RGB(0, 255, 0));
+	RasterizeLine(ProjectVertex(vBf), ProjectVertex(vBb), RT_RGB(0, 255, 0));
+	RasterizeLine(ProjectVertex(vCf), ProjectVertex(vCb), RT_RGB(0, 255, 0));
+	RasterizeLine(ProjectVertex(vDf), ProjectVertex(vDb), RT_RGB(0, 255, 0));
 }
 
 LRESULT CALLBACK WinProc(HWND hwnd, UINT wm, WPARAM wp, LPARAM lp);

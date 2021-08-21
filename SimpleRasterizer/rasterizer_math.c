@@ -2,8 +2,8 @@
 #include <stdio.h>
 #include <windows.h>
 
-void Swap(Point* a, Point* b) {
-	Point temp = *a;
+void Swap(Vector2* a, Vector2* b) {
+	Vector2 temp = *a;
 	*a = *b;
 	*b = temp;
 }

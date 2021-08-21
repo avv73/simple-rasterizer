@@ -27,6 +27,7 @@ void StartRasterizer(HWND wndHandle, int nWidth, int nHeight) {
 		frmBuffer = (COLORREF*)calloc(RT_WINDOW_WIDTH * RT_WINDOW_HEIGHT, sizeof(COLORREF));
 
 		SetBg(RT_RGB(255, 255, 255));
+		ConfigureScene();
 		Draw();
 	}
 
@@ -45,6 +46,21 @@ void PutPixel(int x, int y, COLORREF clr) {
 
 	frmBuffer[RT_WINDOW_HEIGHT * y + x] = clr;
 }
+
+// Converts a vector in viewport coordinate system to vector in canvas coordinate system.
+
+Vector2 ViewportToCanvas(Vector2 a) {
+	Vector2 res = { a.x * RT_WINDOW_WIDTH / mainScn.vwpSize, a.y * RT_WINDOW_HEIGHT / mainScn.vwpSize };
+	return res;
+}
+
+// Projects a 3D vector into 2D vector in canvas coordinates
+
+Vector2 ProjectVertex(Vector3 v) {
+	Vector2 res = { v.x * mainScn.prjPlaneZ / v.z, v.y * mainScn.prjPlaneZ / v.z };
+	return ViewportToCanvas(res);
+}
+
 
 // Sets the background color of the screen.
 
@@ -80,7 +96,7 @@ void Update(HWND wndHandle) {
 	DeleteObject(map);
 }
 
-// Performs linear interpolation between two points (i/d0 and i/d1), assumes i1 > i0 . Returns array of the interpolated values.
+// Performs linear interpolation between two Vector2s (i/d0 and i/d1), assumes i1 > i0 . Returns array of the interpolated values.
 
 float* Interpolate(float i0, float d0, float i1, float d1) {
 	// round off float values
@@ -106,9 +122,9 @@ float* Interpolate(float i0, float d0, float i1, float d1) {
 	return res;
 }
 
-// Rasterizes a line defined by two points and a color to the screen.
+// Rasterizes a line defined by two Vector2s and a color to the screen.
 
-void RasterizeLine(Point a, Point b, COLORREF clr) {
+void RasterizeLine(Vector2 a, Vector2 b, COLORREF clr) {
 	float dx = b.x - a.x;
 	float dy = b.y - a.y;
 
@@ -138,17 +154,17 @@ void RasterizeLine(Point a, Point b, COLORREF clr) {
 	}
 }
 
-// Rasterizes the outline (wireframe) of a triangle, defined by three points and a color.
+// Rasterizes the outline (wireframe) of a triangle, defined by three Vector2s and a color.
 
-void RasterizeWireframeTriangle(Point a, Point b, Point c, COLORREF clr) {
+void RasterizeWireframeTriangle(Vector2 a, Vector2 b, Vector2 c, COLORREF clr) {
 	RasterizeLine(a, b, clr);
 	RasterizeLine(b, c, clr);
 	RasterizeLine(c, a, clr);
 }
 
-// Rasterizes a filled triangle with a solid color, defined by three points and a color.
+// Rasterizes a filled triangle with a solid color, defined by three Vector2s and a color.
 
-void RasterizeFilledTriangle(Point a, Point b, Point c, COLORREF clr) {
+void RasterizeFilledTriangle(Vector2 a, Vector2 b, Vector2 c, COLORREF clr) {
 	float* xL = NULL;
 	float* xR = NULL;
 
@@ -187,9 +203,9 @@ void RasterizeFilledTriangle(Point a, Point b, Point c, COLORREF clr) {
 	}
 }
 
-// Rasterizes a filled triangle with a gradient color, defined by three points, color, and gradient factor [0-1] of each point.
+// Rasterizes a filled triangle with a gradient color, defined by three Vector2s, color, and gradient factor [0-1] of each Vector2.
 
-void RasterizeShadedTriangle(Point a, Point b, Point c, COLORREF clr, float aH, float bH, float cH) {
+void RasterizeShadedTriangle(Vector2 a, Vector2 b, Vector2 c, COLORREF clr, float aH, float bH, float cH) {
 	float* xL = NULL;
 	float* hL = NULL;
 	float* xR = NULL;

@@ -3,8 +3,14 @@
 typedef struct {
 	float x;
 	float y;
-} Point;
+} Vector2;
 
-void Swap(Point* a, Point* b);
+typedef struct {
+	float x;
+	float y;
+	float z;
+} Vector3;
+
+void Swap(Vector2* a, Vector2* b);
 
 float* ArrayConcat(float* a, int aSize, float* b, int bSize);
