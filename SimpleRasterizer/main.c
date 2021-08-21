@@ -14,17 +14,6 @@ const int WINDOW_WIDTH = 600;
 
 int isMinimized = 0;
 
-// Called by the rasterizer, configures the scene to use
-
-void ConfigureScene() {
-	mainScn.cmrPos.x = 0;
-	mainScn.cmrPos.y = 0;
-	mainScn.cmrPos.z = 0;
-
-	mainScn.prjPlaneZ = 1;
-	mainScn.vwpSize = 1;
-}
-
 // Called by the rasterizer, describes the scene to render
 
 void Draw() {
@@ -106,6 +95,13 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdline, int cmds
 	ShowWindow(hwnd, cmdshow);
 
 	UpdateWindow(hwnd);
+
+	mainScn.cmrPos.x = 0;
+	mainScn.cmrPos.y = 0;
+	mainScn.cmrPos.z = 0;
+
+	mainScn.prjPlaneZ = 1;
+	mainScn.vwpSize = 1;
 
 	StartRasterizer(hwnd, WINDOW_WIDTH, WINDOW_HEIGHT);
 	while (GetMessage(&msg, NULL, 0, 0)) {

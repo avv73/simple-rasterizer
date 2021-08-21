@@ -27,7 +27,6 @@ void StartRasterizer(HWND wndHandle, int nWidth, int nHeight) {
 		frmBuffer = (COLORREF*)calloc(RT_WINDOW_WIDTH * RT_WINDOW_HEIGHT, sizeof(COLORREF));
 
 		SetBg(RT_RGB(255, 255, 255));
-		ConfigureScene();
 		Draw();
 	}
 
