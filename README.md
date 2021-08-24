@@ -8,7 +8,7 @@ A simple rasterizer in C, using only the Win32 API. Implements the pseudo-raster
 - [X] - **Filled Triangles** - Implementing rasterization of triangles
 - [X] - **Shaded Triangles** - Implements rasterization of triangles filled with color gradient
 - [X] - **Perspective Projection** - Implements rasterization of 3D objects
-- [ ] - **Describing and Rendering a Scene** - Implements representation of arbitrary types of objects in a scene
+- [X] - **Describing and Rendering a Scene** - Implements representation of arbitrary types of objects in a scene
 - [ ] - **Clipping** - The techniques needed to identify objects behind the camera
 - [ ] - **Hidden Surface Removal** - Removing surfaces that are not visible from the camera
 - [ ] - **Shading** - Implementing lights into the scene

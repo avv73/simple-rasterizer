@@ -18,7 +18,6 @@ void Update(HWND wndHandle);
 void SetBg(COLORREF clr);
 
 // Initializes the rasterizer and renders the scene
-
 void StartRasterizer(HWND wndHandle, int nWidth, int nHeight) {
 	RT_WINDOW_WIDTH = nWidth;
 	RT_WINDOW_HEIGHT = nHeight;
@@ -34,7 +33,6 @@ void StartRasterizer(HWND wndHandle, int nWidth, int nHeight) {
 }
 
 // Puts pixel on the screen, converts from canvas coordinate system to screen coordinate system itself.
-
 void PutPixel(int x, int y, COLORREF clr) {
 	x = RT_WINDOW_WIDTH / 2 + x;
 	y = RT_WINDOW_HEIGHT / 2 - y - 1;
@@ -47,22 +45,19 @@ void PutPixel(int x, int y, COLORREF clr) {
 }
 
 // Converts a vector in viewport coordinate system to vector in canvas coordinate system.
-
 Vector2 ViewportToCanvas(Vector2 a) {
 	Vector2 res = { a.x * RT_WINDOW_WIDTH / mainScn.vwpSize, a.y * RT_WINDOW_HEIGHT / mainScn.vwpSize };
 	return res;
 }
 
-// Projects a 3D vector into 2D vector in canvas coordinates
-
-Vector2 ProjectVertex(Vector3 v) {
+// Projects a 3D vertex in homogenous coordinates into 2D point in canvas coordinates.
+Vector2 ProjectVertex(Vector4 v) {
 	Vector2 res = { v.x * mainScn.prjPlaneZ / v.z, v.y * mainScn.prjPlaneZ / v.z };
 	return ViewportToCanvas(res);
 }
 
 
 // Sets the background color of the screen.
-
 void SetBg(COLORREF clr) {
 	for (int x = -RT_WINDOW_WIDTH / 2; x < RT_WINDOW_WIDTH / 2; x++) {
 		for (int y = -RT_WINDOW_HEIGHT / 2; y < RT_WINDOW_HEIGHT / 2; y++) {
@@ -72,7 +67,6 @@ void SetBg(COLORREF clr) {
 }
 
 // Updates window handle DC with bitmap of framebuffer
-
 void Update(HWND wndHandle) {
 	HDC wndDc = GetDC(wndHandle);
 
@@ -96,7 +90,6 @@ void Update(HWND wndHandle) {
 }
 
 // Performs linear interpolation between two Vector2s (i/d0 and i/d1), assumes i1 > i0 . Returns array of the interpolated values.
-
 float* Interpolate(float i0, float d0, float i1, float d1) {
 	// round off float values
 	i0 = ceil(i0);
@@ -122,7 +115,6 @@ float* Interpolate(float i0, float d0, float i1, float d1) {
 }
 
 // Rasterizes a line defined by two Vector2s and a color to the screen.
-
 void RasterizeLine(Vector2 a, Vector2 b, COLORREF clr) {
 	float dx = b.x - a.x;
 	float dy = b.y - a.y;
@@ -154,7 +146,6 @@ void RasterizeLine(Vector2 a, Vector2 b, COLORREF clr) {
 }
 
 // Rasterizes the outline (wireframe) of a triangle, defined by three Vector2s and a color.
-
 void RasterizeWireframeTriangle(Vector2 a, Vector2 b, Vector2 c, COLORREF clr) {
 	RasterizeLine(a, b, clr);
 	RasterizeLine(b, c, clr);
@@ -162,7 +153,6 @@ void RasterizeWireframeTriangle(Vector2 a, Vector2 b, Vector2 c, COLORREF clr) {
 }
 
 // Rasterizes a filled triangle with a solid color, defined by three Vector2s and a color.
-
 void RasterizeFilledTriangle(Vector2 a, Vector2 b, Vector2 c, COLORREF clr) {
 	float* xL = NULL;
 	float* xR = NULL;
@@ -203,7 +193,6 @@ void RasterizeFilledTriangle(Vector2 a, Vector2 b, Vector2 c, COLORREF clr) {
 }
 
 // Rasterizes a filled triangle with a gradient color, defined by three Vector2s, color, and gradient factor [0-1] of each Vector2.
-
 void RasterizeShadedTriangle(Vector2 a, Vector2 b, Vector2 c, COLORREF clr, float aH, float bH, float cH) {
 	float* xL = NULL;
 	float* hL = NULL;
@@ -263,5 +252,45 @@ void RasterizeShadedTriangle(Vector2 a, Vector2 b, Vector2 c, COLORREF clr, floa
 
 			PutPixel(x, y, RT_RGB(shR, shG, shB));
 		}
+	}
+}
+
+// Rasterizes a triangle, accepts the triangle itself and array of all projected vertices of the object.
+void RasterizeTriangle(Triangle tr, Vector2* prjsVertx) {
+	RasterizeWireframeTriangle(prjsVertx[(int)tr.vtxIndList.x],
+		prjsVertx[(int)tr.vtxIndList.y],
+		prjsVertx[(int)tr.vtxIndList.z],
+		tr.clr
+	);
+}
+
+// Rasterizes an model, according to the instances transformation matrix.
+void RasterizeModel(Model* m, float** transf) {
+	Vector2* prjsVertx = (Vector2*)malloc(sizeof(Vector2) * m->vCnt);
+	for (int i = 0; i < m->vCnt; i++) {
+		Vector3 currV = m->vertx[i];
+		Vector4 homV = { currV.x, currV.y, currV.z, 1 };
+		prjsVertx[i] = ProjectVertex(MultiplyMatrixVector(transf, homV));
+	}
+
+	for (int i = 0; i < m->vCnt; i++) {
+		RasterizeTriangle(m->trs[i], prjsVertx);
+	}
+
+	free(prjsVertx);
+}
+
+// Rasterizes all current instances in the scene
+void RasterizeScene() {
+	float** camMat = MultiplyMM4(TransposeMM4(mainScn.cmr.rot), CreateTranslationMatrix(ScaleVector(-1, mainScn.cmr.pos)));							// camera matrix; Cr^-1 X Ct^-1
+
+	for (int i = 0; i < mainScn.instCnt; i++) {
+		Instance currInst = mainScn.insts[i];
+		float** localTransf = MultiplyMM4(CreateTranslationMatrix(currInst.pos), MultiplyMM4(currInst.rot, CreateScalingMatrix(currInst.scl)));		// local transformation matrix of model instance; It X Ir X Is
+		localTransf = MultiplyMM4(camMat, localTransf);																								
+
+		RasterizeModel(mainScn.insts[i].m, localTransf);
+
+		free(localTransf);
 	}
 }

@@ -9,9 +9,30 @@
 #define RT_GetBValue(a) (GetRValue(a)) 
 
 typedef struct {
-	Vector3 cmrPos;
+	Triangle* trs;
+	int trCnt;
+	Vector3* vertx;
+	int vCnt;
+} Model;
+
+typedef struct {
+	Model* m;
+	Vector3 pos;
+	float scl;
+	float** rot;
+} Instance;
+
+typedef struct {
+	Vector3 pos;
+	float** rot;
+} Camera;
+
+typedef struct {
+	Camera cmr;
 	float vwpSize;
 	float prjPlaneZ;
+	Instance* insts;
+	int instCnt;
 } Scene;
 
 Scene mainScn;
@@ -26,4 +47,4 @@ void RasterizeFilledTriangle(Vector2 a, Vector2 b, Vector2 c, COLORREF clr);
 
 void RasterizeShadedTriangle(Vector2 a, Vector2 b, Vector2 c, COLORREF clr, float aH, float bH, float cH);
 
-Vector2 ProjectVertex(Vector3 v);
+void RasterizeScene();

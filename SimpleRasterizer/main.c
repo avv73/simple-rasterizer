@@ -17,33 +17,83 @@ int isMinimized = 0;
 // Called by the rasterizer, describes the scene to render
 
 void Draw() {
-	Vector3 vAf = { -2, -0.5, 5 };
-	Vector3 vBf = { -2, 0.5, 5 };
-	Vector3 vCf = { -1, 0.5, 5 };
-	Vector3 vDf = { -1, -0.5, 5 };
+	// TODO: Fix at model and instances part of book !!! 
+	Vector3 a = { 1, 1, 1 };
+	Vector3 b = { -1, 1, 1 };
+	Vector3 c = { -1, -1, 1 };
+	Vector3 d = { 1, -1, 1 };
 
-	Vector3 vAb = { -2, -0.5, 6 };
-	Vector3 vBb = { -2, 0.5, 6 };
-	Vector3 vCb = { -1, 0.5, 6 };
-	Vector3 vDb = { -1, -0.5, 6 };
+	Vector3 e = { 1, 1, -1 };
+	Vector3 f = { -1, 1, -1 };
+	Vector3 g = { -1, -1, -1 };
+	Vector3 h = { 1, -1, -1 };
 
-	// The front face
-	RasterizeLine(ProjectVertex(vAf), ProjectVertex(vBf), RT_RGB(0, 0, 255));
-	RasterizeLine(ProjectVertex(vBf), ProjectVertex(vCf), RT_RGB(0, 0, 255));
-	RasterizeLine(ProjectVertex(vCf), ProjectVertex(vDf), RT_RGB(0, 0, 255));
-	RasterizeLine(ProjectVertex(vDf), ProjectVertex(vAf), RT_RGB(0, 0, 255));
+	Vector3 vertxA[8] = { a, b, c, d, e, f, g, h };
+	Vector3* vertx = (Vector3*)malloc(sizeof(Vector3) * 8);
+	for (int i = 0; i < 8; i++) {
+		vertx[i] = vertxA[i];
+	}
 
-	// The back face
-	RasterizeLine(ProjectVertex(vAb), ProjectVertex(vBb), RT_RGB(255, 0, 0));
-	RasterizeLine(ProjectVertex(vBb), ProjectVertex(vCb), RT_RGB(255, 0, 0));
-	RasterizeLine(ProjectVertex(vCb), ProjectVertex(vDb), RT_RGB(255, 0, 0));
-	RasterizeLine(ProjectVertex(vDb), ProjectVertex(vAb), RT_RGB(255, 0, 0));
+	Vector3 qt = { 0, 1, 2 };
+	Vector3 wt = { 0, 2, 3 };
+	Vector3 et = { 4, 0, 3 };
+	Vector3 tt = { 4, 3, 7 };
+	Vector3 yt = { 5, 4, 7 };
+	Vector3 ut = { 5, 7, 6 };
+	Vector3 it = { 1, 5, 6 };
+	Vector3 ot = { 1, 6, 2 };
+	Vector3 pt = { 4, 5, 1 };
+	Vector3 zt = { 4, 1, 0 };
+	Vector3 xt = { 2, 6, 7 };
+	Vector3 vt = { 2, 7, 3 };
 
-	// The front-to-back edges
-	RasterizeLine(ProjectVertex(vAf), ProjectVertex(vAb), RT_RGB(0, 255, 0));
-	RasterizeLine(ProjectVertex(vBf), ProjectVertex(vBb), RT_RGB(0, 255, 0));
-	RasterizeLine(ProjectVertex(vCf), ProjectVertex(vCb), RT_RGB(0, 255, 0));
-	RasterizeLine(ProjectVertex(vDf), ProjectVertex(vDb), RT_RGB(0, 255, 0));
+	Triangle q = { qt, RT_RGB(255, 0, 0) };
+	Triangle w = { wt, RT_RGB(255, 0, 0) };
+	Triangle eE = { et, RT_RGB(0, 255, 0) };
+	Triangle t = { tt, RT_RGB(0, 255, 0) };
+	Triangle y = { yt, RT_RGB(0, 0, 255) };
+	Triangle u = { ut, RT_RGB(0, 0, 255) };
+	Triangle i = { it, RT_RGB(255, 255, 0) };
+	Triangle o = { ot, RT_RGB(255, 255, 0) };
+	Triangle p = { pt, RT_RGB(255, 0, 255) };
+	Triangle z = { zt, RT_RGB(255, 0, 255) };
+	Triangle x = { xt, RT_RGB(0, 255, 255) };
+	Triangle v = { xt, RT_RGB(0, 255, 255) };
+
+	Triangle trsA[12] = { q, w, eE, t, y, u, i, o, p, z, x, v };
+	Triangle* trs = (Triangle*)malloc(sizeof(Triangle) * 12);
+	for (int i = 0; i < 12; i++) {
+		trs[i] = trsA[i];
+	}
+
+	Model cubeA = { vertx, 8, trs, 12 };
+	Model* cube = (Model*)malloc(sizeof(Model));
+
+	cube->trs = trs;
+	cube->vertx = vertx;
+	cube->trCnt = 8;
+	cube->vCnt = 12;
+
+	Vector3 t1 = { -1.5, 0, 7 };
+	Instance in1 = { cube, t1, 0.75, IdentityMM4() };
+
+	Vector3 t2 = { 1.25, 2, 7.5 };
+	Instance in2 = { cube, t2, 1, CreateYRotationMatrix(195) };
+
+	Instance insA[2] = { in1, in2 };
+	Instance* ins = (Instance*)malloc(sizeof(Instance) * 2);
+	for (int i = 0; i < 2; i++) {
+		ins[i] = insA[i];
+	}
+
+	mainScn.insts = ins;
+	mainScn.instCnt = 2;
+
+	Vector3 tC = { -3, 1, 2 };
+	Camera cmr = { tC, CreateYRotationMatrix(-30) };
+	mainScn.cmr = cmr;
+
+	RasterizeScene();
 }
 
 LRESULT CALLBACK WinProc(HWND hwnd, UINT wm, WPARAM wp, LPARAM lp);
@@ -96,9 +146,6 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdline, int cmds
 
 	UpdateWindow(hwnd);
 
-	mainScn.cmrPos.x = 0;
-	mainScn.cmrPos.y = 0;
-	mainScn.cmrPos.z = 0;
 
 	mainScn.prjPlaneZ = 1;
 	mainScn.vwpSize = 1;
