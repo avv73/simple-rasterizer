@@ -13,6 +13,8 @@ typedef struct {
 	int trCnt;
 	Vector3* vertx;
 	int vCnt;
+	Vector3 boundCnt;
+	float boundRad;
 } Model;
 
 typedef struct {
@@ -25,6 +27,8 @@ typedef struct {
 typedef struct {
 	Vector3 pos;
 	float** rot;
+	Plane* clipPln;
+	int clipPlnCnt;
 } Camera;
 
 typedef struct {

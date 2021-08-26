@@ -94,7 +94,7 @@ float* Interpolate(float i0, float d0, float i1, float d1) {
 	// round off float values
 	i0 = ceil(i0);
 	i1 = ceil(i1);
-	
+
 	if (i0 == i1) {
 		float* res = (float*)malloc(sizeof(float));
 		*res = d0;
@@ -169,7 +169,7 @@ void RasterizeFilledTriangle(Vector2 a, Vector2 b, Vector2 c, COLORREF clr) {
 		Swap(&c, &b);
 	}
 
-	float* xAB = Interpolate(a.y, a.x, b.y, b.x); 
+	float* xAB = Interpolate(a.y, a.x, b.y, b.x);
 	float* xBC = Interpolate(b.y, b.x, c.y, c.x);
 	float* xAC = Interpolate(a.y, a.x, c.y, c.x);
 
@@ -264,20 +264,98 @@ void RasterizeTriangle(Triangle tr, Vector2* prjsVertx) {
 	);
 }
 
-// Rasterizes an model, according to the instances transformation matrix.
-void RasterizeModel(Model* m, float** transf) {
+// Rasterizes and projects an transformed & clipped model.
+void RasterizeModel(Model* m) {
 	Vector2* prjsVertx = (Vector2*)malloc(sizeof(Vector2) * m->vCnt);
 	for (int i = 0; i < m->vCnt; i++) {
 		Vector3 currV = m->vertx[i];
 		Vector4 homV = { currV.x, currV.y, currV.z, 1 };
-		prjsVertx[i] = ProjectVertex(MultiplyMatrixVector(transf, homV));
+		prjsVertx[i] = ProjectVertex(homV);
 	}
 
-	for (int i = 0; i < m->vCnt; i++) {
+	for (int i = 0; i < m->trCnt; i++) {
 		RasterizeTriangle(m->trs[i], prjsVertx);
 	}
 
 	free(prjsVertx);
+}
+
+void ClipTriangle(Triangle tr, Plane p, Triangle* mainTrs, int* lastTr, Vector3* pnts) {
+	Vector3 a = pnts[(int)tr.vtxIndList.x];
+	Vector3 b = pnts[(int)tr.vtxIndList.y];
+	Vector3 c = pnts[(int)tr.vtxIndList.z];
+
+	int in0 = DotProduct(p.norm, a) + p.dist > 0;
+	int in1 = DotProduct(p.norm, b) + p.dist > 0;
+	int in2 = DotProduct(p.norm, c) + p.dist > 0;
+
+	int totalIn = in0 + in1 + in2;
+	if (totalIn == 0) {
+		// fully clipped out
+	}
+	else if (totalIn == 3) {
+		// all vertices in plane
+		mainTrs[*lastTr] = tr;
+		*lastTr = *lastTr + 1;
+	}
+	else if (totalIn == 1) {
+		// one vertex in plane
+	}
+	else if (totalIn == 2) {
+		// two vertices in plane
+	}
+}
+
+Model* TransformAndClip(Model* m, float** transf, Plane* clipPln, int plnCnt) {
+	// bounding sphere transform & early discard
+	Vector4 boundCntH = { m->boundCnt.x, m->boundCnt.y, m->boundCnt.z, 1 };
+	Vector4 cnt = MultiplyMatrixVector(transf, boundCntH);
+	float radi2 = m->boundRad * m->boundRad;
+
+	Vector3 cnt3 = { cnt.x, cnt.y, cnt.z };
+
+	for (int i = 0; i < mainScn.cmr.clipPlnCnt; i++) {
+		float distance2 = DotProduct(mainScn.cmr.clipPln[i].norm, cnt3) + mainScn.cmr.clipPln[i].dist;
+		if (distance2 < -radi2) {
+			return NULL;
+		}
+	}
+
+	// transform
+	Vector3* vertxs = (Vector3*)malloc(sizeof(Vector3) * m->vCnt);
+	for (int i = 0; i < m->vCnt; i++) {
+		Vector4 mVertxH = { m->vertx[i].x, m->vertx[i].y, m->vertx[i].z, 1 };
+		Vector4 res = MultiplyMatrixVector(transf, mVertxH);
+		Vector3 transfVertx = { res.x, res.y, res.z };
+
+		vertxs[i] = transfVertx;
+	}
+
+	// clip each model against each plane
+	Triangle* cpyTr = ArrayCopyTriangle(m->trs, m->trCnt);
+
+	for (int i = 0; i < plnCnt; i++) {
+		Triangle* newTrs = (Triangle*)malloc(sizeof(Triangle) * m->trCnt);
+		int* cnt = (int*)calloc(1, sizeof(int));
+
+		for (int j = 0; j < m->trCnt; j++) {
+			ClipTriangle(cpyTr[j], clipPln[i], newTrs, cnt, vertxs);
+		}
+
+		free(cnt);
+		free(cpyTr);
+		cpyTr = newTrs;
+	}
+
+	Model* res = (Model*)malloc(sizeof(Model));
+	res->boundCnt = cnt3;
+	res->boundRad = m->boundRad;
+	res->trs = cpyTr;
+	res->vertx = vertxs;
+	res->vCnt = m->vCnt;
+	res->trCnt = m->trCnt;
+
+	return res;
 }
 
 // Rasterizes all current instances in the scene
@@ -287,10 +365,17 @@ void RasterizeScene() {
 	for (int i = 0; i < mainScn.instCnt; i++) {
 		Instance currInst = mainScn.insts[i];
 		float** localTransf = MultiplyMM4(CreateTranslationMatrix(currInst.pos), MultiplyMM4(currInst.rot, CreateScalingMatrix(currInst.scl)));		// local transformation matrix of model instance; It X Ir X Is
-		localTransf = MultiplyMM4(camMat, localTransf);																								
+		localTransf = MultiplyMM4(camMat, localTransf);
 
-		RasterizeModel(mainScn.insts[i].m, localTransf);
+		Model* clip = TransformAndClip(mainScn.insts[i].m, localTransf, mainScn.cmr.clipPln, mainScn.cmr.clipPlnCnt);
+
+		if (clip) {
+			RasterizeModel(clip);
+		}
 
 		free(localTransf);
+		free(clip);
 	}
+
+	free(camMat);
 }

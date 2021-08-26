@@ -6,6 +6,7 @@
 #include "rasterizer.h"
 #include "main.h"
 #include "rasterizer_math.h"
+#include <math.h>
 
 // Configurables.
 
@@ -17,7 +18,6 @@ int isMinimized = 0;
 // Called by the rasterizer, describes the scene to render
 
 void Draw() {
-	// TODO: Fix at model and instances part of book !!! 
 	Vector3 a = { 1, 1, 1 };
 	Vector3 b = { -1, 1, 1 };
 	Vector3 c = { -1, -1, 1 };
@@ -66,13 +66,12 @@ void Draw() {
 		trs[i] = trsA[i];
 	}
 
-	Model cubeA = { vertx, 8, trs, 12 };
+	Vector3 cubeB = { 0,0,0 };
+	Model cubeA = { trs, 12, vertx, 8, cubeB, sqrt(3) }; // TODO: ???????
 	Model* cube = (Model*)malloc(sizeof(Model));
 
-	cube->trs = trs;
-	cube->vertx = vertx;
-	cube->trCnt = 8;
-	cube->vCnt = 12;
+	*cube = cubeA;
+
 
 	Vector3 t1 = { -1.5, 0, 7 };
 	Instance in1 = { cube, t1, 0.75, IdentityMM4() };
@@ -80,17 +79,40 @@ void Draw() {
 	Vector3 t2 = { 1.25, 2, 7.5 };
 	Instance in2 = { cube, t2, 1, CreateYRotationMatrix(195) };
 
-	Instance insA[2] = { in1, in2 };
-	Instance* ins = (Instance*)malloc(sizeof(Instance) * 2);
-	for (int i = 0; i < 2; i++) {
+	Vector3 t3 = { 0, 0, -10 };
+	Instance in3 = { cube, t3, 1, CreateYRotationMatrix(195) };
+
+	Instance insA[3] = { in1, in2, in3 };
+	Instance* ins = (Instance*)malloc(sizeof(Instance) * 3);
+	for (int i = 0; i < 3; i++) {
 		ins[i] = insA[i];
 	}
 
 	mainScn.insts = ins;
-	mainScn.instCnt = 2;
+	mainScn.instCnt = 3;
 
 	Vector3 tC = { -3, 1, 2 };
-	Camera cmr = { tC, CreateYRotationMatrix(-30) };
+	float r2 = sqrt(2);
+
+	Vector3 pl1P = { 0,0,1 };
+	Vector3 pl2P = { r2, 0, r2 };
+	Vector3 pl3P = { -r2, 0, r2 };
+	Vector3 pl4P = { 0, -r2, r2 };
+	Vector3 pl5P = { 0, r2, r2 };
+
+	Plane nearPl = { pl1P, -1 };
+	Plane leftPl = { pl2P, 0 };
+	Plane rightPl = { pl3P, 0 };
+	Plane topPl = { pl4P, 0 };
+	Plane botPl = { pl5P, 0 };
+
+	Plane plnA[5] = { nearPl, leftPl, rightPl, topPl, botPl };
+	Plane* pln = (Plane*)malloc(sizeof(Plane) * 5);
+	for (int i = 0; i < 5; i++) {
+		pln[i] = plnA[i];
+	}
+
+	Camera cmr = { tC, CreateYRotationMatrix(-30), pln, 5 };
 	mainScn.cmr = cmr;
 
 	RasterizeScene();

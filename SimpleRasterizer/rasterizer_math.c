@@ -240,3 +240,25 @@ Vector3 ScaleVector(float m, Vector3 v) {
 	Vector3 res = { v.x * m, v.y * m, v.z * m };
 	return res;
 }
+
+float DotProduct(Vector3 v1, Vector3 v2) {
+	return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
+}
+
+Vector3 IntersectVectorPlane(Vector3 a, Vector3 b, Plane p) {
+	Vector3 side = { b.x - a.x, b.y - a.y, b.z - a.z };
+	float t = (-p.dist - DotProduct(p.norm, a)) / (DotProduct(p.norm, side));
+
+	Vector3 res = AddVector(a, ScaleVector(t, side));
+	return res;
+}
+
+Triangle* ArrayCopyTriangle(Triangle* a, int len) {
+	Triangle* newArr = (Triangle*)malloc(sizeof(Triangle) * len);
+
+	for (int i = 0; i < len; i++) {
+		newArr[i] = a[i];
+	}
+
+	return newArr;
+}
