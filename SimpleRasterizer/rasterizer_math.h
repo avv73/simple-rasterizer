@@ -36,9 +36,15 @@ Vector3 AddVector(Vector3 v1, Vector3 v2);
 
 Vector3 ScaleVector(float m, Vector3 v); 
 
+Vector3 CrossProduct(Vector3 v1, Vector3 v2);
+
+Vector3 TriangleNormal(Vector3 a, Vector3 b, Vector3 c);
+
 float DotProduct(Vector3 v1, Vector3 v2);
 
 float* ArrayConcat(float* a, int aSize, float* b, int bSize);
+
+float* Vector3ToArray(Vector3 v);
 
 Triangle* ArrayCopyTriangle(Triangle* a, int len);
 

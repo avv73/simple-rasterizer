@@ -7,15 +7,23 @@
 #include "main.h"
 
 COLORREF* frmBuffer = NULL;
+float* dpthBuffer = NULL;
 
 int RT_WINDOW_WIDTH;
 int RT_WINDOW_HEIGHT;
+
+const int ENABLE_BACKFACECULLING = 1;
 
 void Draw();
 
 void Update(HWND wndHandle);
 
 void SetBg(COLORREF clr);
+
+typedef struct {
+	float* a;
+	float* b;
+} FloatPtrTupel;
 
 // Initializes the rasterizer and renders the scene
 void StartRasterizer(HWND wndHandle, int nWidth, int nHeight) {
@@ -24,6 +32,7 @@ void StartRasterizer(HWND wndHandle, int nWidth, int nHeight) {
 
 	if (!frmBuffer) {
 		frmBuffer = (COLORREF*)calloc(RT_WINDOW_WIDTH * RT_WINDOW_HEIGHT, sizeof(COLORREF));
+		dpthBuffer = (float*)calloc(RT_WINDOW_WIDTH * RT_WINDOW_HEIGHT, sizeof(float));
 
 		SetBg(RT_RGB(255, 255, 255));
 		Draw();
@@ -44,6 +53,24 @@ void PutPixel(int x, int y, COLORREF clr) {
 	frmBuffer[RT_WINDOW_HEIGHT * y + x] = clr;
 }
 
+// Updates depth buffer according to a point in canvas coordinate system; returns 1 if point has overwritten the buffer and is "closer", otherwise 0.
+int UpdateDepthBuffer(int x, int y, float inv_z) {
+	x = RT_WINDOW_WIDTH / 2 + x;
+	y = RT_WINDOW_HEIGHT / 2 - y - 1;
+
+	if (x < 0 || x >= RT_WINDOW_WIDTH || y < 0 || y >= RT_WINDOW_HEIGHT) {
+		return 0;
+	}
+
+	int offset = RT_WINDOW_HEIGHT * y + x;
+	if (dpthBuffer[offset] < inv_z) {
+		dpthBuffer[offset] = inv_z;
+		return 1;
+	}
+
+	return 0;
+}
+
 // Converts a vector in viewport coordinate system to vector in canvas coordinate system.
 Vector2 ViewportToCanvas(Vector2 a) {
 	Vector2 res = { a.x * RT_WINDOW_WIDTH / mainScn.vwpSize, a.y * RT_WINDOW_HEIGHT / mainScn.vwpSize };
@@ -55,7 +82,6 @@ Vector2 ProjectVertex(Vector4 v) {
 	Vector2 res = { v.x * mainScn.prjPlaneZ / v.z, v.y * mainScn.prjPlaneZ / v.z };
 	return ViewportToCanvas(res);
 }
-
 
 // Sets the background color of the screen.
 void SetBg(COLORREF clr) {
@@ -114,6 +140,21 @@ float* Interpolate(float i0, float d0, float i1, float d1) {
 	return res;
 }
 
+// Linearly interpolates the edges of three Vector2s (y/v0, y/v1, y/v2); returns tupel of interpolated values between v0&v2 and v0&v1&v2.
+FloatPtrTupel EdgeInterpolate(float y0, float v0, float y1, float v1, float y2, float v2) {
+	float* v01 = Interpolate(y0, v0, y1, v1);
+	float* v12 = Interpolate(y1, v1, y2, v2);
+	float* v02 = Interpolate(y0, v0, y2, v2);
+
+	float* v012 = ArrayConcat(v01, y1 - y0 + 1, v12, y2 - y1 + 1); // v01 should be y1 - y0
+
+	FloatPtrTupel res = { v02, v012 };
+
+	free(v12);
+	free(v01);
+	return res;
+}
+
 // Rasterizes a line defined by two Vector2s and a color to the screen.
 void RasterizeLine(Vector2 a, Vector2 b, COLORREF clr) {
 	float dx = b.x - a.x;
@@ -150,6 +191,28 @@ void RasterizeWireframeTriangle(Vector2 a, Vector2 b, Vector2 c, COLORREF clr) {
 	RasterizeLine(a, b, clr);
 	RasterizeLine(b, c, clr);
 	RasterizeLine(c, a, clr);
+}
+
+// ...
+Vector3 SortVertexIndices(float* vrtxInd, Vector2* projVtx) {
+	Vector3 result = { 0, 1, 2 };
+	if (projVtx[(int)vrtxInd[(int)result.y]].y < projVtx[(int)vrtxInd[(int)result.x]].y) {
+		float s = result.x;
+		result.x = result.y;
+		result.y = s;
+	}
+	if (projVtx[(int)vrtxInd[(int)result.z]].y < projVtx[(int)vrtxInd[(int)result.x]].y) {
+		float s = result.x;
+		result.x = result.z;
+		result.z = s;
+	}
+	if (projVtx[(int)vrtxInd[(int)result.z]].y < projVtx[(int)vrtxInd[(int)result.y]].y) {
+		float s = result.y;
+		result.y = result.z;
+		result.z = s;
+	}
+
+	return result;
 }
 
 // Rasterizes a filled triangle with a solid color, defined by three Vector2s and a color.
@@ -255,13 +318,85 @@ void RasterizeShadedTriangle(Vector2 a, Vector2 b, Vector2 c, COLORREF clr, floa
 	}
 }
 
-// Rasterizes a triangle, accepts the triangle itself and array of all projected vertices of the object.
-void RasterizeTriangle(Triangle tr, Vector2* prjsVertx) {
-	RasterizeWireframeTriangle(prjsVertx[(int)tr.vtxIndList.x],
+// Rasterizes a filled triangle, accepts the triangle itself, array of all projected vertices of the object and array of all vertices of the triangle itself.
+void RasterizeTriangle(Triangle tr, Vector3* vtx, Vector2* prjsVertx) {
+	float* trIndx = Vector3ToArray(tr.vtxIndList);
+
+	Vector3 indSort = SortVertexIndices(trIndx, prjsVertx);
+	int i0 = indSort.x;
+	int i1 = indSort.y;
+	int i2 = indSort.z;
+
+	Vector3 v0 = vtx[(int)trIndx[i0]];
+	Vector3 v1 = vtx[(int)trIndx[i1]];
+	Vector3 v2 = vtx[(int)trIndx[i2]];
+
+	Vector3 norm = TriangleNormal(vtx[(int)tr.vtxIndList.x], vtx[(int)tr.vtxIndList.y], vtx[(int)tr.vtxIndList.z]);
+
+	// backface culling
+	if (ENABLE_BACKFACECULLING) {
+		Vector3 ctr = ScaleVector(-1.0 / 3.0, AddVector(AddVector(vtx[(int)tr.vtxIndList.x], vtx[(int)tr.vtxIndList.y]), vtx[(int)tr.vtxIndList.z]));
+		if (DotProduct(ctr, norm) < 0) {
+			return;
+		}
+	}
+	
+	Vector2 p0 = prjsVertx[(int)trIndx[i0]];
+	Vector2 p1 = prjsVertx[(int)trIndx[i1]];
+	Vector2 p2 = prjsVertx[(int)trIndx[i2]];
+
+	FloatPtrTupel edgeT = EdgeInterpolate(p0.y, p0.x, p1.y, p1.x, p2.y, p2.x);
+	FloatPtrTupel depthT = EdgeInterpolate(p0.y, 1.0 / v0.z, p1.y, 1.0 / v1.z, p2.y, 1.0 / v2.z);
+
+	float* xL;
+	float* xR;
+	float* zL;
+	float* zR;
+
+	// determine left-right
+	int m = floor(p1.y - p0.y) / 2;
+	if (edgeT.a[m] < edgeT.b[m]) {
+		xL = edgeT.a;
+		xR = edgeT.b;
+		zL = depthT.a;
+		zR = depthT.b;
+	}
+	else {
+		xL = edgeT.b;
+		xR = edgeT.a;
+		zL = depthT.b;
+		zR = depthT.a;
+	}
+
+	// rasterize
+	for (int y = p0.y; y <= p2.y; y++) {
+		int xl = xL[(int)(y - p0.y)];
+		int xr = xR[(int)(y - p0.y)];
+		float zl = zL[(int)(y - p0.y)];
+		float zr = zR[(int)(y - p0.y)];
+
+		float* zScan = Interpolate(xl, zl, xr, zr);
+
+		for (int x = xl; x <= xr; x++) {
+			if (UpdateDepthBuffer(x, y, zScan[x - xl])) {
+				PutPixel(x, y, tr.clr);
+			}
+		}
+
+		free(zScan);
+	}
+
+	/*RasterizeWireframeTriangle(prjsVertx[(int)tr.vtxIndList.x],
 		prjsVertx[(int)tr.vtxIndList.y],
 		prjsVertx[(int)tr.vtxIndList.z],
 		tr.clr
-	);
+	);*/
+
+	free(trIndx);
+	free(xL);
+	free(xR);
+	free(zL);
+	free(zR);
 }
 
 // Rasterizes and projects an transformed & clipped model.
@@ -274,12 +409,13 @@ void RasterizeModel(Model* m) {
 	}
 
 	for (int i = 0; i < m->trCnt; i++) {
-		RasterizeTriangle(m->trs[i], prjsVertx);
+		RasterizeTriangle(m->trs[i], m->vertx, prjsVertx);
 	}
 
 	free(prjsVertx);
 }
 
+// Clips a triangle, according to a single clipping plane. Adds in-plane triangles in mainTrs array.
 void ClipTriangle(Triangle tr, Plane p, Triangle* mainTrs, int* lastTr, Vector3* pnts) {
 	Vector3 a = pnts[(int)tr.vtxIndList.x];
 	Vector3 b = pnts[(int)tr.vtxIndList.y];
@@ -306,6 +442,7 @@ void ClipTriangle(Triangle tr, Plane p, Triangle* mainTrs, int* lastTr, Vector3*
 	}
 }
 
+// Transforms and clips a model, according to a transformation matrix and an array of camera clip planes.
 Model* TransformAndClip(Model* m, float** transf, Plane* clipPln, int plnCnt) {
 	// bounding sphere transform & early discard
 	Vector4 boundCntH = { m->boundCnt.x, m->boundCnt.y, m->boundCnt.z, 1 };

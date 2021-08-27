@@ -33,6 +33,26 @@ Vector3 AddVector(Vector3 v1, Vector3 v2) {
 	return res;
 }
 
+Vector3 CrossProduct(Vector3 v1, Vector3 v2) {
+	Vector3 res = { v1.y * v2.z - v1.z * v2.y, v1.z * v2.x - v1.x * v2.z, v1.x * v2.y - v1.y * v2.x };
+	return res;
+}
+
+Vector3 TriangleNormal(Vector3 a, Vector3 b, Vector3 c) {
+	Vector3 ab = AddVector(b, ScaleVector(-1, a));
+	Vector3 ac = AddVector(c, ScaleVector(-1, a));
+	return CrossProduct(ab, ac);
+}
+
+float* Vector3ToArray(Vector3 v) {
+	float* res = (float*)malloc(sizeof(float) * 3);
+	res[0] = v.x;
+	res[1] = v.y;
+	res[2] = v.z;
+
+	return res;
+}
+
 float** CreateYRotationMatrix(float dg) {
 	dg = dg * PI / 180.0;
 

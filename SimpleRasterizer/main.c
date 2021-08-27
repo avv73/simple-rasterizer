@@ -67,7 +67,7 @@ void Draw() {
 	}
 
 	Vector3 cubeB = { 0,0,0 };
-	Model cubeA = { trs, 12, vertx, 8, cubeB, sqrt(3) }; // TODO: ???????
+	Model cubeA = { trs, 12, vertx, 8, cubeB, sqrt(3) };
 	Model* cube = (Model*)malloc(sizeof(Model));
 
 	*cube = cubeA;
